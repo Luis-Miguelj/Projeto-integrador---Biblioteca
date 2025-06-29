@@ -5,36 +5,42 @@ from tkinter import messagebox
 class LivroController:
     def __init__(self):
         self.titulos = []
-        self.pagina_atual = 0
-        self.itens_por_pagina = 10
-        self.filtro_letra = "Todos"
-        self.filtro_busca = ""
+        self.paginaatual = 0
+        self.itenspagina = 10
+        self.filtroletra = "Todos"
+        self.filtrobusca = ""
 
     def carregar_titulos(self):
         self.titulos = model.listar_livros()
-        return [titulo for _, titulo in self.titulos]
+        lista = []
+        for c in range(len(self.titulos)):
+            titulo = self.titulos[c][1]
+            lista.append(titulo)
+        return lista
 
     def selecionar_primeiro(self):
-        return self.titulos[0][1] if self.titulos else ""
+        if self.titulos:
+            return self.titulos[0][1]
+        return ""
 
     def buscar_dados_detalhes(self):
-        offset = self.pagina_atual * self.itens_por_pagina
+        offset = self.paginaatual * self.itenspagina
         return model.buscar_detalhes(
             offset,
-            self.itens_por_pagina,
-            self.filtro_letra,
-            self.filtro_busca
+            self.itenspagina,
+            self.filtroletra,
+            self.filtrobusca
         )
 
     def avancar_pagina(self):
-        self.pagina_atual += 1
+        self.paginaatual += 1
 
     def voltar_pagina(self):
-        if self.pagina_atual > 0:
-            self.pagina_atual -= 1
+        if self.paginaatual > 0:
+            self.paginaatual -= 1
 
     def resetar_paginacao(self):
-        self.pagina_atual = 0
+        self.paginaatual = 0
 
 def selecionar_banco(view_ref):
     def selecionar(opcao):

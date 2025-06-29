@@ -1,7 +1,6 @@
 
 import psycopg2
 import sqlite3
-import os
 
 USAR_SQLITE = False
 
@@ -23,7 +22,7 @@ def conectar():
             host="localhost",
             database="livros",
             user="postgres",
-            password="123456"
+            password="Sun@09072018"
         )
 
 def inicializar_sqlite_se_necessario():
@@ -61,6 +60,7 @@ def inicializar_sqlite_se_necessario():
         livros = listar_livros_completos()
         usar_sqlite()
         for livro in livros:
+            print(livro)
             cursor.execute("INSERT OR IGNORE INTO livros (codigo, titulo) VALUES (?, ?)", (int(livro['codigo']), livro['titulo']))
             if livro['edicao'] and livro['ano']:
                 cursor.execute("INSERT OR IGNORE INTO edicao (codigolivro, numero, ano) VALUES (?, ?, ?)",
@@ -82,9 +82,12 @@ def listar_livros():
     dados = cursor.fetchall()
     cursor.close()
     conn.close()
-
+    print(dados[0])
     if USAR_SQLITE:
-        return [(row["codigo"], row["titulo"]) for row in dados]
+        lista = []
+        for row in dados:
+            lista.append((row["codigo"], row["titulo"]))
+        return lista
     return dados
 
 def listar_livros_completos():
@@ -98,10 +101,15 @@ def listar_livros_completos():
         LEFT JOIN autor a ON a.codigo = la.codigoautor
     """)
     dados = cursor.fetchall()
-    colunas = [desc[0] for desc in cursor.description]
+    colunas = []
+    for desc in cursor.description:
+        colunas.append(desc[0])
     cursor.close()
     conn.close()
-    return [dict(zip(colunas, row)) for row in dados]
+    livros = []
+    for row in dados:
+        livros.append(dict(zip(colunas, row)))
+    return livros
 
 def buscar_detalhes(offset, limite, letra=None, busca=None):
     conn = conectar()
@@ -119,28 +127,52 @@ def buscar_detalhes(offset, limite, letra=None, busca=None):
     valores = []
 
     if letra and letra != "Todos":
-        condicoes.append("l.titulo ILIKE ?" if USAR_SQLITE else "l.titulo ILIKE %s")
+        if USAR_SQLITE:
+            condicoes.append("l.titulo LIKE ? COLLATE NOCASE")
+        else:
+            condicoes.append("l.titulo ILIKE %s")
         valores.append(f"{letra}%")
 
     if busca:
         if str(busca).isdigit():
-            condicoes.append("l.codigo = ?" if USAR_SQLITE else "l.codigo = %s")
+            if USAR_SQLITE:
+                condicoes.append("l.codigo = ?")
+            else:
+                condicoes.append("l.codigo = %s")
             valores.append(int(busca))
         else:
-            condicoes.append("(l.titulo ILIKE ? OR a.nome ILIKE ?)" if USAR_SQLITE else "(l.titulo ILIKE %s OR a.nome ILIKE %s)")
+            if USAR_SQLITE:
+                condicoes.append("(l.titulo LIKE ? COLLATE NOCASE OR a.nome LIKE ? COLLATE NOCASE)")
+            else:
+                condicoes.append("(l.titulo ILIKE %s OR a.nome ILIKE %s)")
             valores.extend([f"%{busca}%", f"%{busca}%"])
 
     if condicoes:
         base += " WHERE " + " AND ".join(condicoes)
 
-    base += " ORDER BY l.titulo LIMIT ? OFFSET ?" if USAR_SQLITE else " ORDER BY l.titulo LIMIT %s OFFSET %s"
+    if USAR_SQLITE:
+        base += " ORDER BY l.titulo LIMIT ? OFFSET ?"
+    else:
+        base += " ORDER BY l.titulo LIMIT %s OFFSET %s"
     valores.extend([limite, offset])
-
+    print(base, valores)
     cursor.execute(base, valores)
     dados = cursor.fetchall()
-    colunas = [desc[0] for desc in cursor.description]
+    colunas = []
+    for desc in cursor.description:
+        colunas.append(desc[0])
 
     cursor.close()
     conn.close()
 
-    return [tuple(row) if not USAR_SQLITE else tuple(row[col] for col in colunas) for row in dados]
+    resultado = []
+    for row in dados:
+        if not USAR_SQLITE:
+            resultado.append(tuple(row))
+        else:
+            valores = []
+            for col in colunas:
+                valores.append(row[col])
+            resultado.append(tuple(valores))
+
+    return resultado

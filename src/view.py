@@ -68,8 +68,13 @@ class LivroView:
         self.tree = ttk.Treeview(nova, columns=colunas, show="headings")
         for col in colunas:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=130 if col != "Título" else 200)
+            if col != "Título":
+                self.tree.column(col, width=130)
+            else:
+                self.tree.column(col, width=200)
         self.tree.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        self.tree.bind("<Double-1>", lambda event: self.mostrar_detalhes(nova))
 
         frame_nav = tk.Frame(nova)
         frame_nav.pack(pady=10)
@@ -78,10 +83,25 @@ class LivroView:
         tk.Button(frame_nav, text="Próxima", command=self.pagina_proxima).pack(side=tk.LEFT, padx=5)
 
         self.atualizar_tabela()
+    
+    def mostrar_detalhes(self, janela):
+        item = self.tree.selection()
+        if not item:
+            return
+
+        valores = self.tree.item(item[0], "values")
+
+        # Fecha a janela atual
+        janela.destroy()
+
+        # Mostra um alerta com os detalhes
+        mensagem = f"""Código: {valores[0]}\nTítulo: {valores[1]}\nEdição: {valores[2]}\nAno: {valores[3]}\nAutor: {valores[4]}""".strip()
+
+        messagebox.showinfo("Detalhes do Livro", mensagem)
 
     def aplicar_filtros(self):
-        self.ctrl.filtro_letra = self.combo_letra.get()
-        self.ctrl.filtro_busca = self.entry_busca.get().strip()
+        self.ctrl.filtroletra = self.combo_letra.get()
+        self.ctrl.filtrobusca = self.entry_busca.get().strip()
         self.ctrl.resetar_paginacao()
         self.atualizar_tabela()
 
