@@ -22,7 +22,7 @@ def conectar():
             host="localhost",
             database="livros",
             user="postgres",
-            password="Sun@09072018"
+            password="123456"
         )
 
 def inicializar_sqlite_se_necessario():
